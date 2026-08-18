@@ -17,8 +17,6 @@ jobs:
         mgmt:
           - arch: "x86_64"
             host: "x86_64-w64-mingw32"
-          - arch: "i686"
-            host: "i686-w64-mingw32"
 
     steps:
     - name: Checkout source code
@@ -52,19 +50,22 @@ jobs:
         fi
 
 
-    - run: |
+    - name: list working-dir
+      run: |
         find .
         
-    - name: Configure cross-compilation environment
+
+    - name: Configure cross-compilation for Shared DLLs
       run: |
-        # mkdir build
-        #cd build
-        # Specify the cross-compile target host using the matrix configuration
+        # 1. Force enable shared and disable static
+        # 2. Pass LDFLAGS="-no-undefined" to satisfy Windows PE linker requirements
         ./configure \
           --host=${{ matrix.mgmt.host }} \
           --prefix=$PWD/output \
-          --enable-static \
-          --disable-shared
+          --enable-shared \
+          --disable-static \
+          LDFLAGS="-no-undefined"
+
 
     - name: Compile project
       run: |
@@ -73,6 +74,7 @@ jobs:
         make -j$(nproc)
 
     - name: Stage compiled binaries
+      if: false
       run: |
         cd build
         make install
@@ -80,6 +82,6 @@ jobs:
     - name: Upload Windows artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: windows-build-${{ matrix.mgmt.arch }}
-        path: build/output/
+        name: windows-build-${{ matrix.mgmt.arch }}-run${{ github.run_number }}
+        path: ./
         if-no-files-found: error
