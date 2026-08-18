@@ -1,0 +1,80 @@
+name: Windows Cross-Compile CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  cross-compile:
+    name: Build for Windows (${{ matrix.mgmt.arch }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mgmt:
+          - arch: "x86_64"
+            host: "x86_64-w64-mingw32"
+          - arch: "i686"
+            host: "i686-w64-mingw32"
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v4
+
+    - name: Install Linux build tools and MinGW cross-compiler
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          autoconf \
+          automake \
+          libtool \
+          pkg-config \
+          make \
+          mingw-w64 \
+          file
+
+    - name: Bootstrap build system using autogen.sh
+      run: |
+        if [ -f "./autogen.sh" ]; then
+          chmod +x ./autogen.sh
+          ./autogen.sh
+        elif [ -f "./bootstrap" ]; then
+          chmod +x ./bootstrap
+          ./bootstrap
+        else
+          echo "Running autoreconf as fallback..."
+          autoreconf -i --force
+        fi
+
+    - name: Configure cross-compilation environment
+      run: |
+        mkdir build
+        cd build
+        # Specify the cross-compile target host using the matrix configuration
+        ../configure \
+          --host=${{ matrix.mgmt.host }} \
+          --prefix=$PWD/output \
+          --enable-static \
+          --disable-shared
+
+    - name: Compile project
+      run: |
+        cd build
+        # Utilizes all available CPU cores for faster parallel builds
+        make -j$(nproc)
+
+    - name: Stage compiled binaries
+      run: |
+        cd build
+        make install
+
+    - name: Upload Windows artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-build-${{ matrix.mgmt.arch }}
+        path: build/output/
+        if-no-files-found: error
