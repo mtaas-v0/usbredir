@@ -1,0 +1,52 @@
+name: Build usbredir for Windows
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      # Explicitly configure line endings before cloning to prevent Windows-specific git diff issues
+      - name: Configure Git Line Endings
+        run: |
+          git config --global core.autocrlf input
+
+      # Pull code directly from GitLab instead of checking out the host GitHub repository
+      - name: Clone usbredir from GitLab
+        shell: bash
+        run: |
+          git clone https://gitlab.freedesktop.org/spice/usbredir.git .
+
+      # Set up a native Windows building environment via MSYS2 using the modern UCRT64 toolchain
+      - name: Set up MSYS2 Environment
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-toolchain
+            mingw-w64-ucrt-x86_64-meson
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-libusb
+
+      # Run Meson and Ninja within the context of the MSYS2 shell environment
+      - name: Compile Project
+        shell: msys2 {0}
+        run: |
+          meson setup build
+          meson compile -C build
+
+      # Find and harvest all compiled dynamic libraries (.dll) and upload them as a runner artifact
+      - name: Upload Compiled DLL Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: usbredir-windows-dll-run-${{ github.run_number }}
+          path: |
+            build/**/*.dll
+          if-no-files-found: error
