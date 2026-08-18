@@ -35,7 +35,8 @@ jobs:
           pkg-config \
           make \
           mingw-w64 \
-          file
+          file \
+          libusb-1.0 >= 1.0.9
 
     - name: Bootstrap build system using autogen.sh
       run: |
