@@ -21,7 +21,7 @@ jobs:
       - name: Clone usbredir from GitLab
         shell: bash
         run: |
-          git clone https://freedesktop.org .
+          git clone https://gitlab.freedesktop.org/spice/usbredir.git .
 
       # Set up a native Windows building environment via MSYS2 using the modern UCRT64 toolchain
       - name: Set up MSYS2 Environment
