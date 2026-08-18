@@ -43,6 +43,7 @@ jobs:
         run: |
           meson setup build
           meson compile -C build
+          cp /ucrt64/bin/libusb-1.0.dll build/
 
       # Find and harvest all compiled dynamic libraries (.dll) and upload them as a runner artifact
       - name: Upload Compiled DLL Artifact
