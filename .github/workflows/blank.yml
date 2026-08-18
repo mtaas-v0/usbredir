@@ -70,13 +70,13 @@ jobs:
           --host=${{ matrix.mgmt.host }} \
           --prefix=$PWD/output \
           --enable-shared \
-          --disable-static \
-          LDFLAGS="-no-undefined"
+          --disable-static
+        # LDFLAGS="-no-undefined"
 
     - uses: actions/upload-artifact@v7
       if: ${{ failure() }}
       with:
-        name: failed-x64-configure-dir-archive
+        name: usbredir-failed-x64-configure-dir-archive
         retention-days: 2
         path: ./
         
@@ -89,7 +89,7 @@ jobs:
     - uses: actions/upload-artifact@v7
       if: ${{ failure() && 0 }}
       with:
-        name: failed-x64-build-dir-archive
+        name: usbredir-failed-x64-build-dir-archive
         retention-days: 2
         path: ./
         
