@@ -22,6 +22,7 @@ jobs:
     - name: Checkout source code
       uses: actions/checkout@v4
 
+    
     - name: Install Linux build tools and MinGW cross-compiler
       run: |
         sudo apt-get update
@@ -33,8 +34,14 @@ jobs:
           pkg-config \
           make \
           mingw-w64 \
-          file \
           libusb-1.0 >= 1.0.9
+
+    - name: Fix MinGW Compiler Selection
+      run: |
+        # Explicitly select the posix-threading compiler backend to repair the 'compiler works... no' error
+        sudo update-alternatives --set ${{ matrix.mgmt.host }}-gcc /usr/bin/${{ matrix.mgmt.host }}-gcc-posix
+        sudo update-alternatives --set ${{ matrix.mgmt.host }}-g++ /usr/bin/${{ matrix.mgmt.host }}-g++-posix
+
 
     - name: Bootstrap build system using autogen.sh
       run: |
@@ -66,13 +73,26 @@ jobs:
           --disable-static \
           LDFLAGS="-no-undefined"
 
-
+    - uses: actions/upload-artifact@v7
+      if: ${{ failure() }}
+      with:
+        name: failed-x64-configure-dir-archive
+        retention-days: 2
+        path: ./
+        
     - name: Compile project
       run: |
         #cd build
         # Utilizes all available CPU cores for faster parallel builds
         make -j$(nproc)
 
+    - uses: actions/upload-artifact@v7
+      if: ${{ failure() && 0 }}
+      with:
+        name: failed-x64-build-dir-archive
+        retention-days: 2
+        path: ./
+        
     - name: Stage compiled binaries
       if: false
       run: |
